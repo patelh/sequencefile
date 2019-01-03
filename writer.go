@@ -64,6 +64,9 @@ type WriterConfig struct {
 	// Rand is a source of random numbers. Should usually be nil, but useful
 	// for reproducible output.
 	Rand *rand.Rand
+
+	// Compression compression level
+	CompressionLevel int
 }
 
 // A Writer writes key/value pairs to a sequence file output stream.
@@ -115,7 +118,7 @@ func NewWriter(cfg *WriterConfig) (w *Writer, err error) {
 	}
 
 	if w.cfg.Compression != NoCompression {
-		if w.compressor, err = w.newCompressor(w.cfg.CompressionCodec); err != nil {
+		if w.compressor, err = w.newCompressor(w.cfg.CompressionCodec, w.cfg.CompressionLevel); err != nil {
 			return nil, err
 		}
 	}
@@ -205,10 +208,19 @@ func (w *Writer) codecName(codec CompressionCodec) (string, error) {
 	}
 }
 
-func (w *Writer) newCompressor(codec CompressionCodec) (compressor, error) {
+func (w *Writer) newCompressor(codec CompressionCodec, level int) (compressor, error) {
 	switch w.cfg.CompressionCodec {
 	case GzipCompression:
-		return &gzipCompressor{}, nil
+		if(level > 0) {
+			buf := new(bytes.Buffer)
+			z, err := gzip.NewWriterLevel(buf, level);
+			if err != nil {
+				return nil, err
+			}
+			return &gzipCompressor{z, *buf}, nil
+		} else {
+			return &gzipCompressor{}, nil
+		}
 	case SnappyCompression:
 		return snappyCompressor{snappyDefaultChunkSize}, nil
 	default:

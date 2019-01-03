@@ -13,6 +13,7 @@ type fileSpec struct {
 	compression Compression
 	codec       CompressionCodec
 	classname   string
+	numRecords  int
 }
 
 var files = []fileSpec{
@@ -21,42 +22,63 @@ var files = []fileSpec{
 		NoCompression,
 		0,
 		"",
+		2,
 	},
 	{
 		"testdata/record_compressed_gzip.sequencefile",
 		RecordCompression,
 		GzipCompression,
 		GzipClassName,
+		2,
 	},
 	{
 		"testdata/record_compressed_snappy.sequencefile",
 		RecordCompression,
 		SnappyCompression,
 		SnappyClassName,
+		2,
 	},
 	{
 		"testdata/record_compressed_zlib.sequencefile",
 		RecordCompression,
 		ZlibCompression,
 		ZlibClassName,
+		2,
 	},
 	{
 		"testdata/block_compressed_gzip.sequencefile",
 		BlockCompression,
 		GzipCompression,
 		GzipClassName,
+		2,
 	},
 	{
 		"testdata/block_compressed_snappy.sequencefile",
 		BlockCompression,
 		SnappyCompression,
 		SnappyClassName,
+		2,
 	},
 	{
 		"testdata/block_compressed_zlib.sequencefile",
 		BlockCompression,
 		ZlibCompression,
 		ZlibClassName,
+		2,
+	},
+	{
+		"testdata/block_compressed_lz4_raw.sequencefile",
+		BlockCompression,
+		Lz4Compression,
+		Lz4ClassName,
+		2,
+	},
+	{
+		"testdata/block_compressed_lz4.sequencefile",
+		BlockCompression,
+		Lz4Compression,
+		Lz4ClassName,
+		102,
 	},
 }
 
@@ -102,6 +124,10 @@ func testFileSpec(t *testing.T, r *Reader, spec fileSpec) {
 	assert.Equal(t, "Hope", string(BytesWritable(r.Value())), "The value should be correct")
 
 	// EOF
+	for i:=0; i< (spec.numRecords - 2); i++ {
+		ok = r.Scan()
+		require.True(t, ok, "Scan should succeed to read all records")
+	}
 	ok = r.Scan()
 	require.NoError(t, r.Err(), "Scan at the end of the file should fail without an error")
 	require.False(t, ok, "Scan at the end of the file should fail without an error")
